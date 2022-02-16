@@ -171,7 +171,7 @@ func (ap *ActionProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "/run":
 		ap.runHandler(w, r)
 	case "/flow":
-		ap.runHandler(w, r)
+		ap.flowHandler(w, r)
 	}
 }
 
