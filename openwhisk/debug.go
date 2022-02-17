@@ -31,8 +31,8 @@ func Debug(format string, args ...interface{}) {
 // DebugLimit emits a debug message with a limit in length
 func DebugLimit(msg string, in []byte, limit int) {
 	if len(in) < limit {
-		Debug("%s:%s", msg, in)
+		Debug("%s: %s", msg, in)
 	} else {
-		Debug("%s:%s...", msg, in[0:limit])
+		Debug("%s: %s...", msg, in[0:limit])
 	}
 }

@@ -25,6 +25,31 @@ import (
 	"net/http"
 )
 
+type InputPayload struct {
+	Value    json.RawMessage
+	Workflow json.RawMessage
+}
+
+func flow(ap *ActionProxy, body []byte) {
+	// execute the action
+	DebugLimit("flow", body, 120)
+	response, err := ap.theExecutor.Interact(body)
+	// check for early termination
+	if err != nil {
+		Debug("WARNING! Command exited")
+		ap.theExecutor = nil
+		return
+	}
+	DebugLimit("received", response, 120)
+
+	// check if the answer is an object map
+	var objmap map[string]*json.RawMessage
+	err = json.Unmarshal(response, &objmap)
+	if err != nil {
+		Debug("WARNING! The action did not return a dictionary")
+	}
+}
+
 func (ap *ActionProxy) flowHandler(w http.ResponseWriter, r *http.Request) {
 
 	// parse the request
@@ -38,54 +63,17 @@ func (ap *ActionProxy) flowHandler(w http.ResponseWriter, r *http.Request) {
 
 	// check if you have an action
 	if ap.theExecutor == nil {
-		sendError(w, http.StatusInternalServerError, fmt.Sprintf("no action defined yet"))
+		sendError(w, http.StatusInternalServerError, "no action defined yet")
 		return
 	}
 	// check if the process exited
 	if ap.theExecutor.Exited() {
-		sendError(w, http.StatusInternalServerError, fmt.Sprintf("command exited"))
+		sendError(w, http.StatusInternalServerError, "command exited")
 		return
 	}
 
 	// remove newlines
 	body = bytes.Replace(body, []byte("\n"), []byte(""), -1)
-
-	// execute the action
-	response, err := ap.theExecutor.Interact(body)
-
-	// check for early termination
-	if err != nil {
-		Debug("WARNING! Command exited")
-		ap.theExecutor = nil
-		sendError(w, http.StatusBadRequest, fmt.Sprintf("command exited"))
-		return
-	}
-	DebugLimit("received:", response, 120)
-
-	// check if the answer is an object map
-	var objmap map[string]*json.RawMessage
-	err = json.Unmarshal(response, &objmap)
-	if err != nil {
-		sendError(w, http.StatusBadGateway, "The action did not return a dictionary.")
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(response)))
-	numBytesWritten, err := w.Write(response)
-
-	// flush output
-	if f, ok := w.(http.Flusher); ok {
-		f.Flush()
-	}
-
-	// diagnostic when you have writing problems
-	if err != nil {
-		sendError(w, http.StatusInternalServerError, fmt.Sprintf("Error writing response: %v", err))
-		return
-	}
-	if numBytesWritten != len(response) {
-		sendError(w, http.StatusInternalServerError, fmt.Sprintf("Only wrote %d of %d bytes to response", numBytesWritten, len(response)))
-		return
-	}
+	go flow(ap, body)
+	sendOK(w)
 }

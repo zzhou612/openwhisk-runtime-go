@@ -78,7 +78,7 @@ func (ap *ActionProxy) runHandler(w http.ResponseWriter, r *http.Request) {
 		sendError(w, http.StatusBadRequest, fmt.Sprintf("command exited"))
 		return
 	}
-	DebugLimit("received:", response, 120)
+	DebugLimit("received", response, 120)
 
 	// check if the answer is an object map
 	var objmap map[string]*json.RawMessage

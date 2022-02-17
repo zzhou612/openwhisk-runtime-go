@@ -27,6 +27,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // ActionProxy is the container of the data specific to a server
@@ -53,6 +54,9 @@ type ActionProxy struct {
 
 	// environment
 	env map[string]string
+
+	// HTTP client
+	client http.Client
 }
 
 // NewActionProxy creates a new action proxy that can handle http requests
@@ -67,6 +71,12 @@ func NewActionProxy(baseDir string, compiler string, outFile *os.File, errFile *
 		outFile,
 		errFile,
 		map[string]string{},
+		http.Client{
+			Transport: &http.Transport{
+				MaxIdleConnsPerHost: 20,
+			},
+			Timeout: 10 * time.Second,
+		},
 	}
 }
 
@@ -192,9 +202,9 @@ func (ap *ActionProxy) ExtractAndCompileIO(r io.Reader, w io.Writer, main string
 
 	envMap := make(map[string]interface{})
 	if env != "" {
-	    json.Unmarshal([]byte(env), &envMap)
+		json.Unmarshal([]byte(env), &envMap)
 	}
-    ap.SetEnv(envMap)
+	ap.SetEnv(envMap)
 
 	// extract and compile it
 	file, err := ap.ExtractAndCompile(&in, main)
