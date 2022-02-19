@@ -25,14 +25,17 @@ import (
 	"net/http"
 )
 
-type InputPayload struct {
-	Value    json.RawMessage
-	Workflow json.RawMessage
-}
-
 func flow(ap *ActionProxy, body []byte) {
 	// execute the action
 	DebugLimit("flow", body, 120)
+	var objmap map[string]json.RawMessage
+	err := json.Unmarshal(body, &objmap)
+	if err != nil {
+		Debug(fmt.Sprintf("Error: %s", err))
+	}
+	DebugLimit("value", objmap["value"], 120)
+	DebugLimit("workflow", objmap["workflow"], 120)
+
 	response, err := ap.theExecutor.Interact(body)
 	// check for early termination
 	if err != nil {
@@ -43,8 +46,8 @@ func flow(ap *ActionProxy, body []byte) {
 	DebugLimit("received", response, 120)
 
 	// check if the answer is an object map
-	var objmap map[string]*json.RawMessage
-	err = json.Unmarshal(response, &objmap)
+	var answermap map[string]json.RawMessage
+	err = json.Unmarshal(response, &answermap)
 	if err != nil {
 		Debug("WARNING! The action did not return a dictionary")
 	}

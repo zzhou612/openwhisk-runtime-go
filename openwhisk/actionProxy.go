@@ -56,7 +56,7 @@ type ActionProxy struct {
 	env map[string]string
 
 	// HTTP client
-	client http.Client
+	client *http.Client
 }
 
 // NewActionProxy creates a new action proxy that can handle http requests
@@ -71,9 +71,11 @@ func NewActionProxy(baseDir string, compiler string, outFile *os.File, errFile *
 		outFile,
 		errFile,
 		map[string]string{},
-		http.Client{
+		&http.Client{
 			Transport: &http.Transport{
-				MaxIdleConnsPerHost: 20,
+				MaxIdleConns:        10,
+				MaxConnsPerHost:     1,
+				MaxIdleConnsPerHost: 1,
 			},
 			Timeout: 10 * time.Second,
 		},
